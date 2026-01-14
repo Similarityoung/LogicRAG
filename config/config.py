@@ -1,6 +1,7 @@
 """
 Configuration file for API keys and other settings.
 """
+
 import os
 from dotenv import load_dotenv
 
@@ -12,8 +13,12 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 # Third-party API Configuration (可选)
 # 如果使用第三方兼容 OpenAI 的服务，取消下面的注释并配置
-OPENAI_API_BASE = os.environ.get("OPENAI_API_BASE", None)  # 例如: "https://api.deepseek.com/v1"
-OPENAI_API_TYPE = os.environ.get("OPENAI_API_TYPE", "openai")  # 可选值: "openai", "azure", "deepseek", "siliconflow" 等
+OPENAI_API_BASE = os.environ.get(
+    "OPENAI_API_BASE", None
+)  # 例如: "https://api.deepseek.com/v1"
+OPENAI_API_TYPE = os.environ.get(
+    "OPENAI_API_TYPE", "openai"
+)  # 可选值: "openai", "azure", "deepseek", "siliconflow" 等
 
 # API Rate Limiting Configuration
 CALLS_PER_MINUTE = 20
@@ -22,7 +27,7 @@ MAX_RETRIES = 3
 RETRY_DELAY = 120
 
 # Model Configuration
-DEFAULT_MODEL = "gpt-4o-mini"  # please specify your preferred LLM model
+DEFAULT_MODEL = "deepseek-chat"  # please specify your preferred LLM model
 DEFAULT_MAX_TOKENS = 250
 
 # Embedding Configuration
@@ -31,4 +36,4 @@ EMBEDDING_BATCH_SIZE = 32
 
 # Cache Configuration
 CACHE_DIR = "cache"
-RESULT_DIR = "result" 
+RESULT_DIR = "result"

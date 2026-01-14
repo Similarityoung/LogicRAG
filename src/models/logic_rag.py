@@ -379,7 +379,7 @@ Ans: """
         dependency_analysis_history = []  
         retrieved_chunks_set = set() if self.filter_repeats else None  # Track retrieved chunks if filtering
         
-        print(f"\n\n{Fore.CYAN}{self.MODEL_NAME} answering: {question}{Style.RESET_ALL}\n\n")
+        print(f"\n\n{Fore.CYAN}{self.MODEL_NAME} processing question: {question}{Style.RESET_ALL}\n\n")
         
         #===============================================
         #== Stage 1: warm up retrieval ==
@@ -400,7 +400,7 @@ Ans: """
 
         if analysis["can_answer"]:
             # In this case, the question can be answered with simple fact retrieval, without any dependency analysis
-            print(f"Warm-up analysis indicate the question can be answered with simple fact retrieval, without any dependency analysis.")
+            print("Warm-up: sufficient evidence found via simple fact retrieval; skipping dependency analysis.")
             answer = self.generate_answer(question, info_summary)
             # Reset dependency analysis history for simple questions
             self.last_dependency_analysis = []

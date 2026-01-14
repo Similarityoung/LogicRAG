@@ -11,8 +11,13 @@ from src.models.logic_rag import LogicRAG
 
 
 # Configure logging
-logging.basicConfig(level=logging.WARNING, 
-                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# NOTE: Other modules in this repo call logging.basicConfig() at import time.
+# Use force=True to ensure CLI logging behaves as expected.
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    force=True,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -111,15 +116,15 @@ def run_single_question(model_name: str, question: str, corpus_path: str, max_ro
     model = create_rag_model(model_name, corpus_path, max_rounds, top_k)
     
     # Get answer
-    logger.info(f"\nQuestion: {question}")
+    logger.info(f"Question: {question}")
     logger.info(f"Using {model_name} RAG model")
     
     answer, contexts, rounds = model.answer_question(question)
-    logger.info(f"\nAnswer: {answer}")
+    logger.info(f"Answer: {answer}")
     logger.info(f"Retrieved in {rounds} rounds")
     
     # Log contexts
-    logger.info("\nContexts used:")
+    logger.info("Contexts used:")
     for i, ctx in enumerate(contexts):
         logger.info(f"{i+1}. {ctx[:100]}...")
     
