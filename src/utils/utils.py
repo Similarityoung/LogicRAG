@@ -11,7 +11,7 @@ import backoff
 from openai import OpenAI
 from ratelimit import limits, sleep_and_retry
 from collections import Counter
-from typing import List, Dict, Any
+from typing import Any, Dict, List, Optional
 from colorama import Fore, Style, init
 from config.config import (
     OPENAI_API_KEY,
@@ -110,21 +110,35 @@ def get_response_with_retry(prompt: str, temperature: float = 0.0, print_cost: b
             TOKEN_COST["prompt"] += response.usage.prompt_tokens
             TOKEN_COST["completion"] += response.usage.completion_tokens
 
-        # 如果需要，打印 token 使用信息
-        if print_cost:
+        # 如果需要，打印 token 使用信息（usage 可能为空）
+        if print_cost and response.usage:
             logger.info(f"Prompt tokens: {response.usage.prompt_tokens}")
             logger.info(f"Completion tokens: {response.usage.completion_tokens}")
             logger.info(f"Total tokens: {response.usage.total_tokens}")
 
-        # 返回响应内容
-        return response.choices[0].message.content.strip()
+        # 返回响应内容（choices/message/content 可能为空）
+        if not response or not getattr(response, "choices", None):
+            logger.error("Unexpected API response: missing choices")
+            return ""
+        if len(response.choices) < 1:
+            logger.error("Unexpected API response: empty choices")
+            return ""
+
+        first_choice = response.choices[0]
+        message = getattr(first_choice, "message", None)
+        content = getattr(message, "content", None) if message is not None else None
+        if not content:
+            logger.error("Unexpected API response: missing message content")
+            return ""
+
+        return str(content).strip()
 
     except Exception as e:
         logger.error(f"Error in get_response_with_retry: {str(e)}")
         return ""
 
 
-def fix_json_response(response: str) -> str:
+def fix_json_response(response: str) -> Optional[Dict[str, Any]]:
     """
     修复 LLM 返回的不完整 JSON 响应
 
@@ -138,7 +152,7 @@ def fix_json_response(response: str) -> str:
         response: LLM 返回的原始响应字符串
 
     Returns:
-        dict: 修复后的 JSON 对象，如果修复失败则返回 None
+        Optional[Dict[str, Any]]: 修复后的 JSON 对象；如果修复失败则返回 None
     """
     # 移除 markdown 代码块标记和空白字符
     response = response.strip()

@@ -175,7 +175,7 @@ Please format your response as a JSON object with these keys:
                 "missing_reason": "Analysis error occurred"
             }
 
-    def dependency_aware_rag(self, question: str, info_summary: str, dependencies: List[str], idx: int) -> str:
+    def dependency_aware_rag(self, question: str, info_summary: str, dependencies: List[str], idx: int) -> Dict[str, Any]:
         """
         similar to "self.analyze_dependency_graph" that analyzes whether the current information summary is sufficient to answer the question,
         this function analyzes whether the current information summary is sufficient to answer the question with the decomposed dependencies as references.
@@ -215,6 +215,11 @@ Please format your response as a JSON object with these keys:
             """
             response = get_response_with_retry(prompt)
             result = fix_json_response(response)
+            if result is None:
+                return {
+                    "can_answer": False,
+                    "current_understanding": "Failed to parse dependency_aware_rag response.",
+                }
             return result
         except Exception as e:
             logger.error(f"{Fore.RED}Error in dependency_aware_rag: {e}{Style.RESET_ALL}")
@@ -304,7 +309,11 @@ Ans: """
         """
         response = get_response_with_retry(prompt)
         result = fix_json_response(response)
-        dependency_pairs = result["dependency_pairs"]
+        if not result or "dependency_pairs" not in result:
+            logger.error(f"{Fore.RED}Failed to parse dependency pairs; defaulting to empty list.{Style.RESET_ALL}")
+            dependency_pairs = []
+        else:
+            dependency_pairs = result["dependency_pairs"]
 
         # Step 2: use graph-based algorithm to sort the dependencies in a topological order
         sorted_dependencies = self._topological_sort(dependencies, dependency_pairs)
