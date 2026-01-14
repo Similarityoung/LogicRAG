@@ -29,8 +29,16 @@ logger = logging.getLogger(__name__)
 # Initialize token cost tracking
 TOKEN_COST = {"prompt": 0, "completion": 0}
 
-# Configure OpenAI
-client = OpenAI(api_key=OPENAI_API_KEY)
+# Configure OpenAI (support third-party compatible APIs)
+from config.config import OPENAI_API_BASE
+
+client_kwargs = {"api_key": OPENAI_API_KEY}
+
+# 如果配置了第三方 API 的 base_url，则使用它
+if OPENAI_API_BASE:
+    client_kwargs["base_url"] = OPENAI_API_BASE
+
+client = OpenAI(**client_kwargs)
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 REFLECTION_PROMPT = """Based on the question and the retrieved context, analyze:

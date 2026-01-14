@@ -10,6 +10,11 @@ load_dotenv()
 # OpenAI API Configuration
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
+# Third-party API Configuration (可选)
+# 如果使用第三方兼容 OpenAI 的服务，取消下面的注释并配置
+OPENAI_API_BASE = os.environ.get("OPENAI_API_BASE", None)  # 例如: "https://api.deepseek.com/v1"
+OPENAI_API_TYPE = os.environ.get("OPENAI_API_TYPE", "openai")  # 可选值: "openai", "azure", "deepseek", "siliconflow" 等
+
 # API Rate Limiting Configuration
 CALLS_PER_MINUTE = 20
 PERIOD = 60
