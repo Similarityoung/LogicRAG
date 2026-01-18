@@ -38,10 +38,10 @@
 
 ### 1.2 图算法基础
 
-- [ ] 理解 DAG（有向无环图）概念
-- [ ] 学习拓扑排序算法
-- [ ] 理解 DFS 实现拓扑排序
-- [ ] 阅读 `_topological_sort()` 实现
+- [x] 理解 DAG（有向无环图）概念
+- [x] 学习拓扑排序算法
+- [x] 理解 DFS 实现拓扑排序
+- [x] 阅读 `_topological_sort()` 实现
 
 **代码对应**:
 ```python
@@ -52,10 +52,10 @@ _sort_dependencies() # L249-311 - 依赖排序入口
 
 ### 1.3 LLM Prompting
 
-- [ ] 学习结构化输出（JSON 格式）
-- [ ] 理解多轮对话设计
-- [ ] 分析 `warm_up_analysis()` 的 prompt 设计
-- [ ] 分析 `dependency_aware_rag()` 的 prompt 设计
+- [x] 学习结构化输出（JSON 格式）
+- [x] 理解多轮对话设计
+- [x] 分析 `warm_up_analysis()` 的 prompt 设计
+- [x] 分析 `dependency_aware_rag()` 的 prompt 设计
 
 ---
 
@@ -65,34 +65,34 @@ _sort_dependencies() # L249-311 - 依赖排序入口
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    LogicRAG 核心流程                         │
+│                    LogicRAG 核心流程                        │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  输入问题                                                    │
+│  输入问题                                                   │
 │      ↓                                                      │
 │  ┌─────────────────────────────────────────┐                │
-│  │ Stage 1: 预热阶段 (Warm-up)              │                │
-│  │   1. 初始检索 retrieve(question)         │                │
-│  │   2. 生成摘要 refine_summary_with_context│                │
-│  │   3. 分析依赖 warm_up_analysis()         │                │
+│  │ Stage 1: 预热阶段 (Warm-up)             │                │
+│  │  1. 初始检索 retrieve(question)         │                │
+│  │  2. 生成摘要 refine_summary_with_context│                │
+│  │  3. 分析依赖 warm_up_analysis()         │                │
 │  └─────────────────────────────────────────┘                │
 │      ↓                                                      │
-│  可以直接回答？ ──Yes──→ generate_answer() → 返回            │
+│  可以直接回答？ ──Yes──> generate_answer() → 返回           │
 │      ↓ No                                                   │
 │  ┌─────────────────────────────────────────┐                │
-│  │ 依赖图构建                               │                │
-│  │   1. 提取依赖 dependencies               │                │
-│  │   2. LLM生成依赖对 dependency_pairs      │                │
-│  │   3. 拓扑排序 _topological_sort()        │                │
+│  │依赖图构建                               │                │
+│  │  1. 提取依赖 dependencies               │                │
+│  │  2. LLM生成依赖对 dependency_pairs      │                │
+│  │  3. 拓扑排序 _topological_sort()        │                │
 │  └─────────────────────────────────────────┘                │
 │      ↓                                                      │
 │  ┌─────────────────────────────────────────┐                │
-│  │ Stage 2: 迭代检索 (Agentic Retrieval)    │                │
+│  │Stage 2: 迭代检索 (Agentic Retrieval)    │                │
 │  │   for each dependency in sorted_order:  │                │
 │  │     1. retrieve(dependency)             │                │
 │  │     2. refine_summary_with_context()    │                │
 │  │     3. dependency_aware_rag() 判断      │                │
-│  │     4. 可回答则 break                    │                │
+│  │     4. 可回答则 break                   │                │
 │  └─────────────────────────────────────────┘                │
 │      ↓                                                      │
 │  generate_answer() → 返回                                   │
