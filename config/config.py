@@ -27,7 +27,7 @@ MAX_RETRIES = 3
 RETRY_DELAY = 120
 
 # Model Configuration
-DEFAULT_MODEL = "deepseek-chat"  # please specify your preferred LLM model
+DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", "gpt-4o-mini")  # 默认模型，可在 .env 中配置
 DEFAULT_MAX_TOKENS = 250
 
 # Embedding Configuration
