@@ -24,10 +24,10 @@
 
 ### 1.1 RAG 基础
 
-- [ ] 阅读 RAG Survey Paper: https://arxiv.org/abs/2312.10997
-- [ ] 学习 Sentence-Transformers 文档
-- [ ] 理解向量检索与余弦相似度
-- [ ] 阅读 `BaseRAG.retrieve()` 实现
+- [x] 阅读 RAG Survey Paper: https://arxiv.org/abs/2312.10997
+- [x] 学习 Sentence-Transformers 文档
+- [x] 理解向量检索与余弦相似度
+- [x] 阅读 `BaseRAG.retrieve()` 实现
 
 **学习资源**:
 | 主题 | 资源 | 笔记 |
