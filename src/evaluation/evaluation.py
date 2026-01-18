@@ -6,6 +6,7 @@ from typing import Dict, List, Tuple, Any
 import json
 import os
 from tqdm import tqdm
+from datetime import datetime
 
 from src.utils.utils import (
     normalize_answer, 
@@ -145,6 +146,16 @@ class RAGEvaluator:
         total = len(answers)
         found_in_context = 0
 
+        if total == 0:
+            result = {
+                "answer_found_in_context": 0.0,
+                "total_questions": 0
+            }
+            # Add top-k keys with 0 values
+            for k in self.eval_top_ks:
+                result[f"answer_in_top{k}"] = 0.0
+            return result
+
         # 为每个 top-k 值初始化计数器
         answer_in_top_k = {k: 0 for k in self.eval_top_ks}
 
@@ -173,11 +184,61 @@ class RAGEvaluator:
 
         return result
     
-    def _get_checkpoint_path(self, output_file: str) -> str:
-        """根据输出文件生成检查点文件路径"""
+    def _generate_unique_filename(self, output_file: str, use_timestamp: bool = True) -> str:
+        """生成唯一的输出文件名，避免覆盖
+        
+        Args:
+            output_file: 用户指定的输出文件名 (例如 "hotpotqa_results.json")
+            use_timestamp: 是否添加时间戳（默认 True）
+            
+        Returns:
+            带时间戳的文件名 (例如 "hotpotqa_results_20250118_120000.json")
+        """
+        output_path = os.path.join(RESULT_DIR, output_file)
+        
+        # 如果不使用时间戳且文件不存在，直接返回原名
+        if not use_timestamp and not os.path.exists(output_path):
+            return output_file
+            
         base_name = os.path.basename(output_file)
         name, ext = os.path.splitext(base_name)
-        return os.path.join(CHECKPOINT_DIR, f"{name}_checkpoint{ext}")
+        
+        if use_timestamp:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            new_name = f"{name}_{timestamp}{ext}"
+        else:
+            # 简单的数字递增备选方案
+            counter = 1
+            while True:
+                new_name = f"{name}_{counter}{ext}"
+                new_path = os.path.join(RESULT_DIR, new_name)
+                if not os.path.exists(new_path):
+                    break
+                counter += 1
+                
+        return new_name
+
+    def _get_checkpoint_path(self, output_file: str) -> str:
+        """根据输出文件基础名称生成检查点文件路径
+        
+        命名规则: {基础名}_k{top_k}_r{max_rounds}_checkpoint.json
+        例如: hotpotqa_results_k5_r3_checkpoint.json
+        
+        注意：这种命名方式支持断点续传。只要参数相同，就会映射到同一个检查点文件。
+        """
+        base_name = os.path.basename(output_file)
+        # 去掉可能已有的扩展名
+        name = os.path.splitext(base_name)[0]
+        
+        # 移除可能存在的时间戳后缀 (假设格式为 _YYYYMMDD_HHMMSS)
+        # 这样确保 "hotpotqa_results_2025..." 和 "hotpotqa_results_2026..." 
+        # 都能映射到同一个 "hotpotqa_results_checkpoint"
+        import re
+        timestamp_pattern = r'_\d{8}(_\d{6})?$'
+        name_clean = re.sub(timestamp_pattern, '', name)
+
+        checkpoint_name = f"{name_clean}_k{self.top_k}_r{self.max_rounds}_checkpoint.json"
+        return os.path.join(CHECKPOINT_DIR, checkpoint_name)
 
     def _save_checkpoint(self, results: List[Dict], metrics: Dict, processed_count: int, output_file: str):
         """保存当前评估进度的检查点
@@ -208,7 +269,9 @@ class RAGEvaluator:
                 "completion": TOKEN_COST["completion"]
             }
         }
-
+        
+        # 确保使用原始输出文件名（不含时间戳）来生成检查点路径
+        # 这样无论这次运行的时间戳是什么，都会更新同一个检查点文件
         checkpoint_path = self._get_checkpoint_path(output_file)
 
         with open(checkpoint_path, 'w', encoding='utf-8') as f:
@@ -249,12 +312,14 @@ class RAGEvaluator:
             logger.error(f"加载检查点时出错: {e}")
             return [], {}, 0
     
-    def run_single_model_evaluation(self, eval_data: List[Dict], output_file: str = "evaluation_results.json"):
+    def run_single_model_evaluation(self, eval_data: List[Dict], output_file: str = "evaluation_results.json",
+                                    auto_rename: bool = True) -> Dict:
         """在给定的评估数据上运行单个模型的评估
 
         Args:
             eval_data: 评估数据列表，每个元素包含 'question' 和 'answer' 字段
             output_file: 结果输出文件名
+            auto_rename: 是否自动重命名重复的输出文件（默认 True）
 
         Returns:
             评估摘要字典，包含：
@@ -266,9 +331,20 @@ class RAGEvaluator:
             - 支持从检查点恢复评估（断点续传）
             - 定期保存检查点以防数据丢失
             - 自动计算多种评估指标
+            - Checkpoint 命名格式: {dataset}_k{top_k}_r{max_rounds}_checkpoint.json
+            - Result 命名格式: {dataset}_{timestamp}.json
         """
-        # 尝试加载检查点
-        results, metrics, processed_count = self._load_checkpoint(output_file)
+        original_output_file = output_file
+        
+        # 1. 尝试从检查点恢复 (使用原始文件名来定位检查点)
+        # 即使这次我们最终会生成一个新的带时间戳的结果文件
+        # 我们依然应该先尝试加载可能存在的、对应此配置的检查点
+        results, metrics, processed_count = self._load_checkpoint(original_output_file)
+
+        # 2. 生成本次运行的实际输出文件名（防止覆盖旧结果）
+        if auto_rename:
+            output_file = self._generate_unique_filename(output_file, use_timestamp=True)
+            logger.info(f"本次运行结果将保存至: {output_file}")
 
         # 跳过已处理的问题
         if processed_count > 0:
@@ -358,7 +434,9 @@ class RAGEvaluator:
             # 定期保存检查点
             current_count = processed_count + i + 1
             if (current_count % self.checkpoint_interval == 0) or (i == len(eval_data) - 1):
-                self._save_checkpoint(results, metrics, current_count, output_file)
+                # 即使本次输出文件变了，我们依然更新那个基于"原始文件名"的检查点
+                # 这样下次运行（无论叫什么时间戳）都能找到这个最新的检查点
+                self._save_checkpoint(results, metrics, current_count, original_output_file)
         
         # 计算平均指标
         avg_metrics = {
